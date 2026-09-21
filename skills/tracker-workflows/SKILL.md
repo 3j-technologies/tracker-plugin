@@ -1,9 +1,9 @@
 ---
 name: tracker-workflows
-description: Use 3J Tracker for identity-safe issue work, roadmap creation, native test management and evidence, Tracker-ID handoffs, and exact-head merge gates. Trigger whenever a request asks to inspect, create, update, verify, hand off, or gate work in Tracker.
+description: Use 3J Tracker for identity-safe issue work, roadmap creation, ticket content standards, acceptance-criteria-derived native test coverage, Tracker-ID handoffs, and exact-head merge gates. Trigger whenever a request asks to inspect, create, update, verify, hand off, or gate work in Tracker.
 metadata:
   author: 3J Technologies
-  version: "1.0.0"
+  version: "1.0.1"
   requirements: Network access. Authentication uses the host's native MCP OAuth flow; no manual configuration is required.
 ---
 
@@ -34,9 +34,45 @@ Before creating a ticket, roadmap item, test case, test plan, release, or simila
 3. Use parent/child relationships, milestones, sprints, blockers, and scheduling dependencies only when they reflect real sequencing.
 4. Re-read the created items and links. Report stable Tracker IDs in dependency order.
 
+## Ticket content standards
+
+Write ticket content so the acceptance criteria can be verified without asking the reporter for more information. Apply this when creating a ticket and when materially refining one (any change to its acceptance criteria).
+
+Feature and story tickets must capture:
+
+- Outcome — the change in observable behavior or capability.
+- Who benefits and why.
+- Scope.
+- Out of scope.
+- Acceptance criteria that are testable, preferably as Given/When/Then.
+
+Bug tickets must capture:
+
+- Problem and affected users.
+- Steps to reproduce.
+- Expected behavior.
+- Actual behavior.
+- Environment/version.
+- Acceptance criteria that restore the expected behavior, include a regression test, and verify relevant edge cases.
+
+## Deriving native test cases from acceptance criteria
+
+When creating a ticket or materially refining one (a new ticket, or a change to its acceptance criteria), turn its acceptance criteria into native test coverage as part of that same action:
+
+1. Search first (Duplicate-safe creation) for an existing native case or plan that already covers the same behavior; reuse or update it instead of drafting a parallel one.
+2. Derive cases from the acceptance criteria, not from a mechanical one-case-per-bullet pass:
+   - Consolidate criteria that exercise the same behavior into one case; do not create near-duplicate cases.
+   - Keep each case's precondition, action, and expected result specific enough to execute without re-reading the ticket.
+   - Add regression and edge cases only when the ticket's own content justifies them (bug history, stated scope, explicit edge conditions) — do not invent product behavior to round out coverage. For a bug ticket, a regression case that reproduces the original defect is required, not optional.
+   - If an acceptance criterion is ambiguous or not testable as written, flag it back on the ticket instead of guessing at the intended behavior.
+3. Group the resulting cases in one native test plan scoped to this work item and link that plan to the ticket. Reuse and update an existing plan for the same work item or feature area rather than creating a parallel one.
+4. Cases and plans are native quality entities (`manage_test_case`, `manage_test_plan`). Never create a ticket item type named Test Case or Test Plan as a substitute for either.
+5. Authoring a plan or cases is not a request to run them. Starting an execution locks the plan's scope, so do not start one unless the human asked for it or a separate step in your instructions calls for it.
+6. For small or trivial work where a full native test plan would add no value (a copy fix, a config tweak with no behavioral branch), do not build one by default. Make and state an explicit proportionality decision instead — for example, link the change to one existing case, or record on the ticket how its acceptance criteria will be verified without a dedicated plan. Every acceptance criterion still needs a traceable path to how it gets verified, even when that path is not a formal test plan.
+
 ## Native test management and evidence
 
-1. Use `manage_test_case` to list, read, create, update, or delete reusable native cases. Do not create a ticket item type named Test Case as a substitute.
+1. Use `manage_test_case` to list, read, create, update, or delete reusable native cases. Do not create a ticket item type named Test Case or Test Plan as a substitute for either.
 2. Use `manage_test_plan` for native plans and reversible links to cases and work items. Plan scope becomes immutable after the first execution starts; retire/version instead of rewriting history.
 3. Use `manage_test_execution` to start, list, complete, cancel, or compare runs. Use `record_test_result` to record results and evidence while a run is in progress. Evidence may be URL, file, screenshot, log, or note metadata; never put credentials in evidence.
 4. Completed or cancelled results are immutable. Only use `record_test_result(action="amend")` for a genuine admin-approved correction, always include a specific reason, and preserve the original evidence trail.
