@@ -1,0 +1,17 @@
+{
+  "name": "tracker-plugin",
+  "description": "Official Tracker agent plugin marketplace for Codex, Claude Code, and Google Antigravity.",
+  "owner": {
+    "name": "3J Technologies",
+    "url": "https://3jtech.app"
+  },
+  "plugins": [
+    {
+      "name": "tracker",
+      "source": ".",
+      "displayName": "Tracker",
+      "description": "3J Tracker MCP tools and workflows for AI-native issue tracking, roadmaps, and native test management.",
+      "version": "1.0.0"
+    }
+  ]
+}

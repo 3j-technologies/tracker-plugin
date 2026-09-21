@@ -14,7 +14,7 @@ There is no configuration flag or environment variable to point it elsewhere, an
 
 | Host | Manifest | MCP config |
 |---|---|---|
-| [Codex CLI](https://developers.openai.com/codex) | `.codex-plugin/plugin.json` | `.codex-plugin/.mcp.json` |
+| [Codex CLI](https://developers.openai.com/codex) | `.codex-plugin/plugin.json` | `.mcp.json` (shared with Claude Code) |
 | [Claude Code](https://code.claude.com) | `.claude-plugin/plugin.json` | `.mcp.json` |
 | [Google Antigravity](https://antigravity.google) | `plugin.json` | `mcp_config.json` |
 
@@ -26,25 +26,28 @@ All three hosts also load the shared skill at `skills/tracker-workflows/SKILL.md
 
 ```
 codex plugin marketplace add 3j-technologies/tracker-plugin
-codex plugin add tracker
+codex plugin add tracker@tracker-plugin
 ```
+
+The marketplace name (`tracker-plugin`) is taken from the repository name; `codex plugin marketplace list` shows it once added.
 
 ### Claude Code
 
 ```
-/plugin marketplace add 3j-technologies/tracker-plugin
-/plugin install tracker
+claude plugin marketplace add 3j-technologies/tracker-plugin
+claude plugin install tracker@tracker-plugin
 ```
 
-Or, without a marketplace, point Claude Code directly at this repository from `/plugin install` when prompted for a source.
+(The same commands work as `/plugin marketplace add ...` and `/plugin install ...` inside an interactive session.)
 
 ### Google Antigravity
 
-```
-agy plugin add 3j-technologies/tracker-plugin
-```
+The Antigravity CLI currently installs plugins from a local path only — there is no `owner/repo` shorthand. Clone the repository, then stage it:
 
-Or clone this repository into your Antigravity plugins directory and restart the agent so it picks up `plugin.json`.
+```
+git clone https://github.com/3j-technologies/tracker-plugin.git
+agy plugin install ./tracker-plugin
+```
 
 ## Authentication
 
@@ -62,15 +65,15 @@ The bundled skill (`skills/tracker-workflows/SKILL.md`) guides the agent to reso
 
 ## Updating
 
-- **Codex CLI**: `codex plugin marketplace update 3j-technologies/tracker-plugin` (or re-run `codex plugin add tracker` to pull the latest version).
-- **Claude Code**: `/plugin update tracker`.
-- **Antigravity**: `agy plugin update 3j-technologies/tracker-plugin`, or `git pull` if you installed by cloning.
+- **Codex CLI**: `codex plugin marketplace upgrade tracker-plugin`, then `codex plugin add tracker@tracker-plugin` to pull the refreshed version.
+- **Claude Code**: `claude plugin update tracker` (or `/plugin update tracker` interactively).
+- **Antigravity**: `git pull` in your clone, then re-run `agy plugin install ./tracker-plugin` to re-stage it. Antigravity has no separate plugin-update command.
 
 ## Uninstalling
 
-- **Codex CLI**: `codex plugin remove tracker`.
-- **Claude Code**: `/plugin uninstall tracker`.
-- **Antigravity**: `agy plugin remove 3j-technologies/tracker-plugin`, or remove the cloned directory from your plugins folder.
+- **Codex CLI**: `codex plugin remove tracker@tracker-plugin`.
+- **Claude Code**: `claude plugin uninstall tracker@tracker-plugin` (or `/plugin uninstall tracker` interactively).
+- **Antigravity**: `agy plugin uninstall tracker`, then remove the cloned directory if you no longer want it locally.
 
 Uninstalling removes the plugin's manifests and skill from your host; it does not affect your Tracker workspace or any data in it. To revoke the OAuth grant itself, do so from your 3J Tracker account's connected-apps settings.
 
