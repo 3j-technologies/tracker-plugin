@@ -1,0 +1,28 @@
+{
+  "name": "tracker",
+  "version": "1.0.0",
+  "description": "3J Tracker MCP tools and workflows for AI-native issue tracking, roadmaps, and native test management.",
+  "author": {
+    "name": "3J Technologies",
+    "url": "https://3jtech.app"
+  },
+  "homepage": "https://3jtech.app",
+  "repository": "https://github.com/3j-technologies/tracker-plugin",
+  "license": "MIT",
+  "keywords": ["tracker", "issue-tracking", "project-management", "mcp"],
+  "skills": "skills",
+  "mcpServers": ".mcp.json",
+  "interface": {
+    "displayName": "Tracker",
+    "shortDescription": "AI-native issue tracking, roadmaps, and test management via 3J Tracker.",
+    "longDescription": "Connects the agent to 3J Tracker's MCP server to search and update tickets, build roadmaps, run native test plans, and record evidence. Authentication uses Codex's own MCP OAuth sign-in; see the bundled tracker-workflows skill for the full workflow the agent follows.",
+    "developerName": "3J Technologies",
+    "category": "Productivity",
+    "capabilities": ["issue-tracking", "roadmaps", "test-management"],
+    "websiteURL": "https://3jtech.app",
+    "defaultPrompt": [
+      "What's the status of TRK-2416?",
+      "Create a roadmap for the Q3 onboarding rework."
+    ]
+  }
+}
