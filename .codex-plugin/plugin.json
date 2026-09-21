@@ -1,0 +1,15 @@
+{
+  "name": "tracker",
+  "version": "1.0.0",
+  "description": "3J Tracker MCP tools and workflows for AI-native issue tracking, roadmaps, and native test management.",
+  "author": {
+    "name": "3J Technologies",
+    "url": "https://3jtech.app"
+  },
+  "homepage": "https://3jtech.app",
+  "repository": "https://github.com/3j-technologies/tracker-plugin",
+  "license": "MIT",
+  "keywords": ["tracker", "issue-tracking", "project-management", "mcp"],
+  "skills": "../skills/",
+  "mcpServers": "./.mcp.json"
+}

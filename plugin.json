@@ -1,0 +1,5 @@
+{
+  "$schema": "https://antigravity.google/schemas/v1/plugin.json",
+  "name": "tracker",
+  "description": "3J Tracker MCP tools and workflows for AI-native issue tracking, roadmaps, and native test management."
+}

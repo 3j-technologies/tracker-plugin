@@ -1,0 +1,7 @@
+{
+  "mcpServers": {
+    "tracker": {
+      "serverUrl": "https://mcp-tracker.3jtech.app/mcp"
+    }
+  }
+}
