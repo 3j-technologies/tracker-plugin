@@ -11,7 +11,7 @@
       "source": ".",
       "displayName": "Tracker",
       "description": "3J Tracker MCP tools and workflows for AI-native issue tracking, roadmaps, and native test management.",
-      "version": "1.0.0"
+      "version": "1.0.1"
     }
   ]
 }

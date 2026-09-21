@@ -9,6 +9,14 @@ Checks, independent of any host CLI:
     known private paths) appear anywhere in the tracked tree
   - the shared SKILL.md has valid Agent Skills frontmatter (name, description)
   - host manifests exist at their required paths and are internally consistent
+  - the shared SKILL.md encodes the required ticket-content and
+    acceptance-criteria-derived native test guidance
+  - the plugin manifest version stays in parity across hosts and the
+    marketplace entry
+
+Run with --selftest to prove the content and version-parity checks actually
+catch mutated/regressed input, not just pass trivially on already-correct
+content.
 """
 from __future__ import annotations
 
@@ -80,6 +88,33 @@ FORBIDDEN_README_COMMANDS = [
 ]
 
 REQUIRED_SKILL_FILE = "skills/tracker-workflows/SKILL.md"
+
+# Short, natural substrings of the actual SKILL.md prose (not paraphrases) so
+# the required ticket-content and acceptance-criteria-derived native test
+# guidance stays encoded, not just the file's existence/frontmatter. Keep
+# these in sync by hand if the corresponding SKILL.md wording changes.
+REQUIRED_TICKET_CONTENT_PHRASES = [
+    "Who benefits and why",
+    "Out of scope",
+    "Given/When/Then",
+    "Steps to reproduce",
+    "Actual behavior",
+    "Environment/version",
+    "regression test",
+    "verify relevant edge cases",
+]
+
+REQUIRED_TEST_DERIVATION_PHRASES = [
+    "Deriving native test cases from acceptance criteria",
+    "Consolidate criteria that exercise the same behavior",
+    "only when the ticket's own content justifies them",
+    "flag it back on the ticket",
+    "link that plan to the ticket",
+    "Test Case or Test Plan as a substitute",
+    "not a request to run them",
+    "explicit proportionality decision",
+    "traceable path to how it gets verified",
+]
 
 errors: list[str] = []
 warnings: list[str] = []
@@ -163,6 +198,23 @@ def check_skill_frontmatter():
         errors.append(f"{REQUIRED_SKILL_FILE}: frontmatter missing 'name'")
     if not re.search(r"^description:\s*\S+", frontmatter, re.MULTILINE):
         errors.append(f"{REQUIRED_SKILL_FILE}: frontmatter missing 'description'")
+
+
+def find_missing_skill_phrases(text: str) -> list[str]:
+    """Pure so --selftest can exercise it against mutated text."""
+    return [
+        phrase
+        for phrase in REQUIRED_TICKET_CONTENT_PHRASES + REQUIRED_TEST_DERIVATION_PHRASES
+        if phrase not in text
+    ]
+
+
+def check_skill_content_guidance():
+    path = ROOT / REQUIRED_SKILL_FILE
+    if not path.exists():
+        return
+    for phrase in find_missing_skill_phrases(path.read_text()):
+        errors.append(f"{REQUIRED_SKILL_FILE}: missing required guidance phrase {phrase!r}")
 
 
 def check_codex_manifest_contract():
@@ -256,10 +308,16 @@ def check_readme_commands():
             errors.append(f"README.md contains an unsupported/unverified command: {needle!r}")
 
 
-def check_manifest_version_parity():
+def versions_mismatched(versions: dict) -> bool:
+    """Pure so --selftest can exercise it directly."""
+    return len(set(versions.values())) > 1
+
+
+def _collect_manifest_versions() -> dict:
     codex_path = ROOT / ".codex-plugin/plugin.json"
     claude_path = ROOT / ".claude-plugin/plugin.json"
     antigravity_path = ROOT / "plugin.json"
+    marketplace_path = ROOT / ".claude-plugin/marketplace.json"
     versions = {}
     for label, path in (
         ("codex", codex_path),
@@ -276,17 +334,80 @@ def check_manifest_version_parity():
             versions[label] = data["version"]
         if "name" in data and data["name"] != "tracker":
             warnings.append(f"{label} manifest name is '{data['name']}', expected 'tracker'")
-    distinct = set(versions.values())
-    if len(distinct) > 1:
+    if marketplace_path.exists():
+        try:
+            marketplace = json.loads(marketplace_path.read_text())
+        except json.JSONDecodeError:
+            marketplace = None
+        if isinstance(marketplace, dict):
+            for entry in marketplace.get("plugins", []):
+                if (
+                    isinstance(entry, dict)
+                    and entry.get("name") == "tracker"
+                    and "version" in entry
+                ):
+                    versions["marketplace"] = entry["version"]
+    return versions
+
+
+def check_manifest_version_parity():
+    versions = _collect_manifest_versions()
+    if versions_mismatched(versions):
         errors.append(f"manifest version mismatch across hosts: {versions}")
 
 
+def selftest() -> int:
+    """Realistic behavioral check: prove the new content and version-parity
+    checks actually catch a regression, instead of only ever passing on
+    already-correct content. Mutates data in memory; never touches disk.
+    """
+    failures: list[str] = []
+
+    skill_text = (ROOT / REQUIRED_SKILL_FILE).read_text()
+    already_missing = find_missing_skill_phrases(skill_text)
+    if already_missing:
+        failures.append(
+            f"selftest precondition failed: the real SKILL.md is already missing {already_missing}"
+        )
+
+    for group, phrase in (
+        ("ticket content standards", "Given/When/Then"),
+        ("native test derivation", "explicit proportionality decision"),
+    ):
+        if phrase not in skill_text:
+            failures.append(f"selftest setup failed: {phrase!r} ({group}) not found in real SKILL.md")
+            continue
+        mutated = skill_text.replace(phrase, "", 1)
+        if phrase not in find_missing_skill_phrases(mutated):
+            failures.append(
+                f"selftest FAILED: deleting {phrase!r} ({group}) went undetected by "
+                "check_skill_content_guidance"
+            )
+
+    if versions_mismatched({"codex": "1.0.1", "claude": "1.0.1", "marketplace": "1.0.1"}):
+        failures.append("selftest FAILED: matching versions were reported as a mismatch")
+    if not versions_mismatched({"codex": "1.0.1", "claude": "1.0.2", "marketplace": "1.0.1"}):
+        failures.append("selftest FAILED: a real version mismatch went undetected")
+
+    if failures:
+        for f in failures:
+            print(f"SELFTEST FAIL: {f}")
+        print(f"\n{len(failures)} selftest failure(s).")
+        return 1
+    print("Selftest passed: content and version-parity checks catch realistic regressions.")
+    return 0
+
+
 def main() -> int:
+    if "--selftest" in sys.argv[1:]:
+        return selftest()
+
     check_json_validity()
     check_required_files()
     check_prod_url()
     check_forbidden_strings()
     check_skill_frontmatter()
+    check_skill_content_guidance()
     check_codex_manifest_contract()
     check_claude_marketplace_wiring()
     check_readme_commands()
