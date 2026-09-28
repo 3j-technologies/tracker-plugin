@@ -116,6 +116,43 @@ REQUIRED_TEST_DERIVATION_PHRASES = [
     "traceable path to how it gets verified",
 ]
 
+# Short, natural substrings proving the project-first hard partition is
+# documented up front, not left to be discovered by a 404.
+REQUIRED_PROJECT_PARTITION_PHRASES = [
+    "hard partition",
+    "lives in exactly one project",
+    "Resolve the project first",
+    "old key still resolves",
+]
+
+# Short, natural substrings proving the newer tool areas (forms, approvals,
+# calendar, releases/sprints, handoff/triage) and the workspace-vocabulary,
+# fail-closed-destructive and multi-tenant rules are actually documented,
+# not just present in the tool schemas the model can already see.
+REQUIRED_TOOLING_PHRASES = [
+    "get_workspace_vocabulary",
+    "cannot be guessed",
+    "manage_form",
+    "list_form_responses",
+    "create_approval",
+    "decide_approval",
+    "create_calendar_event",
+    "manage_booking_links",
+    "create_release",
+    "manage_sprint",
+    "transition_sprint",
+    "file_handoff",
+    "decide_handoff",
+    "assign_agent",
+    "triage_ticket",
+    "set_ticket_state",
+    "link_tickets",
+    "data.confirmation",
+    "request_sent=false",
+    "acts strictly as the caller",
+    "chosen at OAuth consent",
+]
+
 errors: list[str] = []
 warnings: list[str] = []
 
@@ -204,7 +241,12 @@ def find_missing_skill_phrases(text: str) -> list[str]:
     """Pure so --selftest can exercise it against mutated text."""
     return [
         phrase
-        for phrase in REQUIRED_TICKET_CONTENT_PHRASES + REQUIRED_TEST_DERIVATION_PHRASES
+        for phrase in (
+            REQUIRED_TICKET_CONTENT_PHRASES
+            + REQUIRED_TEST_DERIVATION_PHRASES
+            + REQUIRED_PROJECT_PARTITION_PHRASES
+            + REQUIRED_TOOLING_PHRASES
+        )
         if phrase not in text
     ]
 
@@ -394,6 +436,8 @@ def selftest() -> int:
     for group, phrase in (
         ("ticket content standards", "Given/When/Then"),
         ("native test derivation", "explicit proportionality decision"),
+        ("project partition", "hard partition"),
+        ("tooling coverage", "data.confirmation"),
     ):
         if phrase not in skill_text:
             failures.append(f"selftest setup failed: {phrase!r} ({group}) not found in real SKILL.md")
