@@ -61,7 +61,7 @@ Once installed and signed in, just ask your agent to work with Tracker in natura
 - "Create a roadmap for the Q3 onboarding rework."
 - "Run the test plan for the attachments feature and record the results."
 
-The bundled skill (`skills/tracker-workflows/SKILL.md`) guides the agent to resolve your identity and workspace vocabulary first, avoid creating duplicate tickets, use Tracker's native test management instead of ad-hoc ticket types, and treat destructive actions (deletes, bulk mutations, irreversible transitions) as requiring your explicit confirmation.
+The bundled skill (`skills/tracker-workflows/SKILL.md`) guides the agent to resolve your identity and workspace vocabulary first, avoid creating duplicate tickets, hold feature and bug tickets to a consistent content standard, turn acceptance criteria into native test cases and test plans instead of ad-hoc ticket types, and treat destructive actions (deletes, bulk mutations, irreversible transitions) as requiring your explicit confirmation.
 
 ## Updating
 
@@ -79,10 +79,16 @@ Uninstalling removes the plugin's manifests and skill from your host; it does no
 
 ## Validation
 
-`scripts/validate_plugin.py` is a deterministic, dependency-free check that every JSON file in this repository parses, that every host's MCP config points at the exact production URL above, that no forbidden strings (non-production hosts, local paths, auth headers, tokens, API keys) appear anywhere in the tree, and that the shared skill has valid frontmatter:
+`scripts/validate_plugin.py` is a deterministic, dependency-free check that every JSON file in this repository parses, that every host's MCP config points at the exact production URL above, that no forbidden strings (non-production hosts, local paths, auth headers, tokens, API keys) appear anywhere in the tree, that the shared skill has valid frontmatter and encodes the required ticket-content and acceptance-criteria-derived native test guidance, and that the plugin version stays in parity across hosts and the marketplace entry:
 
 ```
 python3 scripts/validate_plugin.py
+```
+
+Run it with `--selftest` to prove those content and version-parity checks actually catch a regression (mutated text, mismatched versions), not just pass trivially on already-correct input:
+
+```
+python3 scripts/validate_plugin.py --selftest
 ```
 
 ## License
