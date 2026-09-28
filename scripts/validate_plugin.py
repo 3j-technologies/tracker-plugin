@@ -313,11 +313,28 @@ def versions_mismatched(versions: dict) -> bool:
     return len(set(versions.values())) > 1
 
 
+def _extract_skill_version(text: str) -> str | None:
+    """Pure so --selftest can exercise it against mutated text.
+
+    Reads the ``version`` field out of the SKILL.md frontmatter's
+    ``metadata:`` block (e.g. ``  version: "1.0.1"``).
+    """
+    match = re.match(r"^---\n(.*?)\n---\n", text, re.DOTALL)
+    if not match:
+        return None
+    frontmatter = match.group(1)
+    version_match = re.search(r'^\s*version:\s*"?([^"\s]+)"?\s*$', frontmatter, re.MULTILINE)
+    if not version_match:
+        return None
+    return version_match.group(1)
+
+
 def _collect_manifest_versions() -> dict:
     codex_path = ROOT / ".codex-plugin/plugin.json"
     claude_path = ROOT / ".claude-plugin/plugin.json"
     antigravity_path = ROOT / "plugin.json"
     marketplace_path = ROOT / ".claude-plugin/marketplace.json"
+    skill_path = ROOT / REQUIRED_SKILL_FILE
     versions = {}
     for label, path in (
         ("codex", codex_path),
@@ -347,6 +364,10 @@ def _collect_manifest_versions() -> dict:
                     and "version" in entry
                 ):
                     versions["marketplace"] = entry["version"]
+    if skill_path.exists():
+        skill_version = _extract_skill_version(skill_path.read_text())
+        if skill_version is not None:
+            versions["skill"] = skill_version
     return versions
 
 
@@ -388,6 +409,18 @@ def selftest() -> int:
         failures.append("selftest FAILED: matching versions were reported as a mismatch")
     if not versions_mismatched({"codex": "1.0.1", "claude": "1.0.2", "marketplace": "1.0.1"}):
         failures.append("selftest FAILED: a real version mismatch went undetected")
+
+    real_versions = _collect_manifest_versions()
+    if "skill" not in real_versions:
+        failures.append(
+            "selftest FAILED: manifest version parity ignores the SKILL.md frontmatter "
+            "version — a SKILL.md-only version bump goes undetected"
+        )
+    elif not versions_mismatched({**real_versions, "skill": "9.9.9"}):
+        failures.append(
+            "selftest FAILED: a SKILL.md-only version mismatch (9.9.9 vs the real "
+            f"manifests {real_versions}) went undetected"
+        )
 
     if failures:
         for f in failures:
