@@ -116,8 +116,8 @@ REQUIRED_TEST_DERIVATION_PHRASES = [
     "traceable path to how it gets verified",
 ]
 
-# Short, natural substrings proving the project-first hard partition (tracker
-# PR #587) is documented up front, not left to be discovered by a 404.
+# Short, natural substrings proving the project-first hard partition is
+# documented up front, not left to be discovered by a 404.
 REQUIRED_PROJECT_PARTITION_PHRASES = [
     "hard partition",
     "lives in exactly one project",
