@@ -150,7 +150,7 @@ REQUIRED_TOOLING_PHRASES = [
     "data.confirmation",
     "request_sent=false",
     "acts strictly as the caller",
-    "chosen at OAuth consent",
+    "explicitly approved at OAuth consent",
 ]
 
 errors: list[str] = []
@@ -273,6 +273,11 @@ def check_codex_manifest_contract():
         data = json.loads(path.read_text())
     except json.JSONDecodeError:
         return
+
+    for key in ("skills", "mcpServers"):
+        value = data.get(key)
+        if isinstance(value, str) and not value.startswith("./"):
+            errors.append(f".codex-plugin/plugin.json field {key!r} must start with ./")
 
     skills = data.get("skills")
     if skills is not None:

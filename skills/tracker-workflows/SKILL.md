@@ -9,7 +9,7 @@ metadata:
 
 # Tracker Workflows
 
-Use the Tracker MCP tools supplied by this plugin. This is the remote, multi-tenant MCP deployment: it holds no credential of its own, and every call acts strictly as the caller, in the workspace chosen at OAuth consent, with that caller's own permissions. Never infer the active identity, workspace, IDs, or configured vocabulary — resolve each one with the tools below.
+Use the Tracker MCP tools supplied by this plugin. This is the remote, multi-tenant MCP deployment: it holds no credential of its own, and every call acts strictly as the caller, within the workspace access explicitly approved at OAuth consent, with that caller's own current permissions. Never infer the active identity, workspace, IDs, or configured vocabulary — resolve each one with the tools below.
 
 ## Start project-, identity- and vocabulary-first
 
@@ -20,6 +20,35 @@ Tracker is project-first: every work item, wiki page, form, test case, test plan
 3. Before a write that needs status, priority, item type, label, member, or custom-field IDs, call `get_workspace_vocabulary` first. These are per-workspace rows with workspace-generated IDs, not global enums, so they cannot be guessed. Test cases and test plans are native quality entities; they are not item types.
 4. Prefer compact reads: `search`, `find_tickets`, `get_ticket(include=[...])`, `manage_test_plan(action="get")`, and `get_delivery_test_evidence`. Ask only for related data needed for the decision.
 5. Carry stable Tracker human IDs such as `TRK-2416` in prose, commits, pull requests, and handoffs. Use UUIDs only where a tool requires them.
+
+## Workspace selection without repeated sign-in
+
+Use the connected server's discovery schema before invoking workspace controls.
+Where remote `contexts` is supported, it lists only the explicitly consented grant's
+workspace set. Existing single-workspace grants stay restricted; access to another
+workspace requires fresh explicit consent, even when the user is a member there.
+Current membership and resource permissions remain enforced on every request.
+
+For one authorized workspace, use it without asking the user to choose. For multiple,
+resolve the requested workspace from `contexts`, display its name, and bind every
+subsequent tool call to that workspace with its advertised `tracker_workspace`
+argument or request `_meta["tracker/workspace"]`. If both are supplied, they must
+identify the same workspace; conflicting selectors are rejected.
+The selector is the returned `workspace_id`, never a guessed display name. Calls
+without either selector use the grant's verified default workspace. Discover the
+connected schema before passing `tracker_workspace`; hosts able to send request
+metadata can use that route. Remote `use_context`, when advertised, validates a
+selection without changing session state. Do not treat a local client's
+`use_context` or a previous call as a global remote switch: selection
+is per request, so another conversation or parallel request keeps its own binding.
+Re-run `whoami`, project discovery and vocabulary reads in the selected workspace.
+
+UI switching clears private data and remounts the selected workspace view; stale
+responses from the prior workspace must not repopulate it. Drafts and writes remain
+bound to their originating workspace. Review or commit with that original binding,
+or create a new draft in the new workspace; never retarget a prepared write merely
+because the visible selector changed. No grant tokens or credentials belong in tool
+results, UI state, logs, or workflow text.
 
 ## Duplicate-safe creation
 
