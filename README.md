@@ -94,3 +94,24 @@ python3 scripts/validate_plugin.py --selftest
 ## License
 
 MIT — see [LICENSE](LICENSE).
+
+## Candidate workspace and UI behavior
+
+The bundled workflow guidance supports servers that advertise an explicitly
+consented workspace set through `contexts`. A capable host binds each call with
+the advertised `tracker_workspace` argument or request `_meta["tracker/workspace"]`;
+switching does not alter other conversations
+or authorize new workspaces. Older single-workspace grants retain their original
+scope. Discover the connected server's supported schema before using this flow.
+
+This companion keeps its fixed production endpoint and existing Antigravity
+manifest. Its Codex component paths use root-relative `./` prefixes, as required by
+[OpenAI packaging guidance](https://developers.openai.com/plugins/build/plugins).
+The monorepo `plugins/tracker` candidate provides the portable Agent Plugins
+adapter and MCP UI delivery configuration. This repository's root `plugin.json`
+remains the Antigravity adapter intentionally.
+
+No verified registered ChatGPT technical app ID is available in this candidate;
+there is no fabricated `.app.json` mapping. MCP wiring and manifest validation do
+not establish ChatGPT installation or inline/fullscreen acceptance. Those require
+the authorized registered connection and an actual host acceptance run.
