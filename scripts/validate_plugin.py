@@ -11,6 +11,8 @@ Checks, independent of any host CLI:
   - host manifests exist at their required paths and are internally consistent
   - the shared SKILL.md encodes the required ticket-content and
     acceptance-criteria-derived native test guidance
+  - the shared SKILL.md keeps the people-only decide guidance and never
+    regains the pre-TRK-2904 "decide on explicit instruction" wording
   - the plugin manifest version stays in parity across hosts and the
     marketplace entry
 
@@ -153,6 +155,27 @@ REQUIRED_TOOLING_PHRASES = [
     "explicitly approved at OAuth consent",
 ]
 
+# The people-only policy: approvals, handoffs and proposals are decided only by
+# a person signed in to the Tracker app, and the backend refuses every token
+# (TRK-2904). These phrases must stay, so the skill keeps telling agents to send
+# the person to the inbox instead of trying to decide.
+REQUIRED_PEOPLE_ONLY_PHRASES = [
+    "refuses every token",
+    "return that 403",
+    "Do not try to decide",
+    "/approvals",
+    "/proposals",
+    "people-only policy",
+    "/help/agents",
+]
+
+# Wording the skill used before TRK-2904, when a token could still decide. Any
+# of it coming back would tell an agent that deciding is allowed on request.
+FORBIDDEN_SKILL_PHRASES = [
+    "acts on one only when a human explicitly asked",
+    "decide only on explicit human instruction",
+]
+
 errors: list[str] = []
 warnings: list[str] = []
 
@@ -246,9 +269,15 @@ def find_missing_skill_phrases(text: str) -> list[str]:
             + REQUIRED_TEST_DERIVATION_PHRASES
             + REQUIRED_PROJECT_PARTITION_PHRASES
             + REQUIRED_TOOLING_PHRASES
+            + REQUIRED_PEOPLE_ONLY_PHRASES
         )
         if phrase not in text
     ]
+
+
+def find_forbidden_skill_phrases(text: str) -> list[str]:
+    """Pure so --selftest can exercise it against mutated text."""
+    return [phrase for phrase in FORBIDDEN_SKILL_PHRASES if phrase in text]
 
 
 def check_skill_content_guidance():
@@ -257,6 +286,11 @@ def check_skill_content_guidance():
         return
     for phrase in find_missing_skill_phrases(path.read_text()):
         errors.append(f"{REQUIRED_SKILL_FILE}: missing required guidance phrase {phrase!r}")
+    for phrase in find_forbidden_skill_phrases(path.read_text()):
+        errors.append(
+            f"{REQUIRED_SKILL_FILE}: out-of-date guidance {phrase!r} — the API refuses "
+            "every token for decide_approval / decide_handoff; people decide in the app"
+        )
 
 
 def check_codex_manifest_contract():
@@ -443,6 +477,7 @@ def selftest() -> int:
         ("native test derivation", "explicit proportionality decision"),
         ("project partition", "hard partition"),
         ("tooling coverage", "data.confirmation"),
+        ("people-only policy", "Do not try to decide"),
     ):
         if phrase not in skill_text:
             failures.append(f"selftest setup failed: {phrase!r} ({group}) not found in real SKILL.md")
@@ -452,6 +487,18 @@ def selftest() -> int:
             failures.append(
                 f"selftest FAILED: deleting {phrase!r} ({group}) went undetected by "
                 "check_skill_content_guidance"
+            )
+
+    already_forbidden = find_forbidden_skill_phrases(skill_text)
+    if already_forbidden:
+        failures.append(
+            f"selftest precondition failed: the real SKILL.md has stale wording {already_forbidden}"
+        )
+    for phrase in FORBIDDEN_SKILL_PHRASES:
+        mutated = skill_text + "\n- `decide_approval` " + phrase + ".\n"
+        if phrase not in find_forbidden_skill_phrases(mutated):
+            failures.append(
+                f"selftest FAILED: re-adding stale guidance {phrase!r} went undetected"
             )
 
     if versions_mismatched({"codex": "1.0.1", "claude": "1.0.1", "marketplace": "1.0.1"}):

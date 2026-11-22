@@ -3,7 +3,7 @@ name: tracker-workflows
 description: Use 3J Tracker for identity-safe issue work, project-scoped roadmap creation, ticket content standards, acceptance-criteria-derived native test coverage, forms/approvals/calendar/releases/sprints, handoff and triage tools, Tracker-ID handoffs, and exact-head merge gates. Trigger whenever a request asks to inspect, create, update, verify, hand off, schedule, approve, or gate work in Tracker.
 metadata:
   author: 3J Technologies
-  version: "1.0.2"
+  version: "1.0.3"
   requirements: Network access. Authentication uses the host's native MCP OAuth flow; no manual configuration is required.
 ---
 
@@ -113,12 +113,12 @@ When creating a ticket or materially refining one (a new ticket, or a change to 
 ## Forms, approvals, calendar, releases and sprints
 
 - Forms (`list_forms`, `get_form`, `manage_form`) and calendar events (`create_calendar_event`, `list_calendar_events`, `manage_calendar_event`, `manage_booking_links`) each belong to one project. `manage_form(action="create")` and `create_calendar_event` 500 when the caller's API key isn't linked to a user account — retry with a user PAT, not a different payload. `list_form_responses` also reads a project's intake triage queue via `intake_queue=true`.
-- `create_approval` routes a decision to a human (`type`: plan/deploy/merge/prod/handoff/other). `list_approvals` reports what's pending; `decide_approval` acts on one only when a human explicitly asked for that specific decision.
+- `create_approval` routes a decision to a human (`type`: plan/deploy/merge/prod/handoff/other). `list_approvals` reports what's pending. Deciding is for a person signed in to the Tracker web or mobile app only: the API refuses every token (PATs, including the one MCP sign-in mints, API keys, agent and delegated tokens) with 403, so `decide_approval` and `decide_handoff` return that 403 with a `next_step`. Do not try to decide, even when the person asks you to; send them to the Approval Inbox (`/approvals`) or the ticket's handoff card. Agent-team proposals are decided the same way, in `/proposals`: `list_approvals(include=["proposals"])` counts the pending ones so you can point the person there.
 - Releases (`create_release`, `manage_release`, `list_releases`) are the "reported in X / fixed in Y" version register, not a deploy mechanism. Sprints (`list_sprints`, `get_sprint`, `manage_sprint`, `transition_sprint`) hold tickets for planning; completing one needs every ticket already closed, or it stays active. Milestones and features (`get_project_plan`, `update_ticket`'s top-level `milestone_id` — not the admin-only `plan.milestone_id` — `manage_feature`/`create_feature`) sit above sprints; check the existing plan before creating a new one.
 
 ## Handoff and triage tools
 
-- `file_handoff` / `decide_handoff` record and approve the did/changed/verified handoff trail. `verified` is the load-bearing field on `file_handoff` — say what you checked and what you didn't; decide only on explicit human instruction, same as `decide_approval`.
+- `file_handoff` / `decide_handoff` record and approve the did/changed/verified handoff trail. `verified` is the load-bearing field on `file_handoff` — say what you checked and what you didn't. `decide_handoff` always gets 403 over a token, same as `decide_approval`; the person decides on the ticket's handoff card.
 - `assign_agent`, `triage_ticket` (`run`/`suggestions`/`accept`/`dismiss`), `set_ticket_state` (close/reopen/done/not_done — kept separate from `update_ticket` since it fires notifications and sprint accounting), and `link_tickets` (relation, blocker, or scheduling dependency) round out ticket lifecycle management.
 
 ## Portable handoff
@@ -145,6 +145,7 @@ Before saying work is merge-ready:
 
 ## Safety
 
+- **What only people do.** Tracker's people-only policy (Help → *What agents can and can't do*, `/help/agents` in the Tracker app) keeps these with a person: being the assignee or reporter of work, deciding approvals, handoffs and agent-team proposals, managing workspace members and roles, and workspace lifecycle (ownership transfer, deletion). You can prepare any of these, such as filing an approval or a handoff, but a person makes the call. Pass `reporter` as the person who asked you, and leave decisions to them in the app.
 - Treat delete, bulk mutation, rejection, irreversible transitions, and replacement of evidence as destructive. Destructive curated tools fail closed by design: they return `data.confirmation` describing the exact action with `request_sent=false` until you resend the call with `confirm=true`. Never manufacture that approval or set `confirm=true` from your own reasoning — show the exact target and consequence, then wait for explicit human confirmation, unless the human already explicitly requested that exact destructive action.
 - Association unlinking is reversible but can change delivery meaning; identify both entities before doing it.
 - Never expose, store, or request session credentials, API keys, or cookies in prompts, skills, MCP configuration, evidence, or handoffs. Authentication belongs entirely to the host's native MCP OAuth flow.
