@@ -11,6 +11,8 @@ metadata:
 
 Use the Tracker MCP tools supplied by this plugin. This is the remote, multi-tenant MCP deployment: it holds no credential of its own, and every call acts strictly as the caller, within the workspace access explicitly approved at OAuth consent, with that caller's own current permissions. Never infer the active identity, workspace, IDs, or configured vocabulary — resolve each one with the tools below.
 
+When the person signs in, Tracker registers this host app (Claude Code, Codex, Antigravity) as their own agent and you act for them through it, never above their current permissions. `whoami` then reports `actor_type: "agent"` with `on_behalf_of_user_id` set to that person. That is expected, not a wrong identity. The audit log records the app acting for the person. Work you write (comments, tickets you file with `reporter` set to them) still belongs to the person. Sign-ins from before this change keep acting as the person directly until they sign in again.
+
 ## Start project-, identity- and vocabulary-first
 
 Tracker is project-first: every work item, wiki page, form, test case, test plan, release, and sprint lives in exactly one project — this is a hard partition, not a default. List and create calls take `project_id`, which accepts either a project's id or its key (e.g. `WEB`). Moving an item to another project gives it a new key there; the old key still resolves, so a stale link is not a broken one.

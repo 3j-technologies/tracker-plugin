@@ -53,6 +53,8 @@ agy plugin install ./tracker-plugin
 
 The first time you use a Tracker tool, your host will open a browser window for you to sign in to your 3J Tracker workspace. This is the host's own native MCP OAuth flow — the plugin does not ask for, store, or transmit any API key, session credential, or password, and there is no plugin setting for a custom server address. If your host ever asks you to paste a credential instead of opening a browser, stop and check that you're installing from this repository.
 
+When you sign in, Tracker registers your host app (for example "Claude Code") as an agent that you own and that acts for you, within your own permissions. Tracker's activity log then shows changes as "Claude Code" acting for you, while comments and work items it writes stay yours. You can see and revoke each app under **Account → Agent access** in Tracker without signing yourself out, and a workspace admin can suspend an app's access at once.
+
 ## Usage
 
 Once installed and signed in, just ask your agent to work with Tracker in natural language, for example:
@@ -75,7 +77,7 @@ The bundled skill (`skills/tracker-workflows/SKILL.md`) guides the agent to reso
 - **Claude Code**: `claude plugin uninstall tracker@tracker-plugin` (or `/plugin uninstall tracker` interactively).
 - **Antigravity**: `agy plugin uninstall tracker`, then remove the cloned directory if you no longer want it locally.
 
-Uninstalling removes the plugin's manifests and skill from your host; it does not affect your Tracker workspace or any data in it. To revoke the OAuth grant itself, do so from your 3J Tracker account's connected-apps settings.
+Uninstalling removes the plugin's manifests and skill from your host; it does not affect your Tracker workspace or any data in it. To revoke the app's access itself, revoke it under **Account → Agent access** in 3J Tracker.
 
 ## Validation
 
