@@ -176,6 +176,34 @@ FORBIDDEN_SKILL_PHRASES = [
     "decide only on explicit human instruction",
 ]
 
+# The exact phrases above guard the old wording. This guards the old meaning: a
+# sentence that names a decide tool next to a "go ahead when asked" cue, with no
+# refusal in the same sentence, tells an agent it may decide on request.
+DECIDE_TOOLS_RE = re.compile(r"\bdecide_(?:approval|handoff)\b")
+PERMISSION_CUE_RE = re.compile(
+    r"\b(?:when (?:a |the )?(?:human|person|user)?\s*(?:asks?|asked|tells? you)|if (?:asked|the (?:human|person|user) asks?)"
+    r"|whenever|explicit(?:ly)?|on request|tells? you to|you (?:may|can) (?:call|use|decide|approve))\b",
+    re.IGNORECASE,
+)
+REFUSAL_CUE_RE = re.compile(
+    r"\b(?:403|refuses?|refused|never|do not|don't|cannot|can't|not allowed)\b|always gets 403",
+    re.IGNORECASE,
+)
+
+
+def find_permissive_decide_sentences(text: str) -> list[str]:
+    """Sentences that name a decide tool as callable on request. Pure, for --selftest."""
+    found = []
+    for sentence in re.split(r"(?<=[.!?])\s+|\n+", text):
+        if (
+            DECIDE_TOOLS_RE.search(sentence)
+            and PERMISSION_CUE_RE.search(sentence)
+            and not REFUSAL_CUE_RE.search(sentence)
+        ):
+            found.append(sentence.strip())
+    return found
+
+
 errors: list[str] = []
 warnings: list[str] = []
 
@@ -290,6 +318,11 @@ def check_skill_content_guidance():
         errors.append(
             f"{REQUIRED_SKILL_FILE}: out-of-date guidance {phrase!r} — the API refuses "
             "every token for decide_approval / decide_handoff; people decide in the app"
+        )
+    for sentence in find_permissive_decide_sentences(path.read_text()):
+        errors.append(
+            f"{REQUIRED_SKILL_FILE}: guidance suggests deciding on request: {sentence[:120]!r} "
+            "— the API refuses every token; say so in the same sentence"
         )
 
 
@@ -500,6 +533,20 @@ def selftest() -> int:
             failures.append(
                 f"selftest FAILED: re-adding stale guidance {phrase!r} went undetected"
             )
+
+    if find_permissive_decide_sentences(skill_text):
+        failures.append("selftest FAILED: the shipped skill reads as permissive about deciding")
+    for paraphrase in (
+        "Call `decide_approval` whenever a person tells you to approve something.",
+        "You may call `decide_handoff` when the human asks.",
+        "Use `decide_approval` only on explicit request.",
+    ):
+        if not find_permissive_decide_sentences(skill_text + "\n- " + paraphrase + "\n"):
+            failures.append(f"selftest FAILED: paraphrased stale guidance went undetected: {paraphrase!r}")
+    if find_permissive_decide_sentences(
+        "- `decide_approval` returns 403 over any token, even when the person asks.\n"
+    ):
+        failures.append("selftest FAILED: a sentence that states the refusal was flagged")
 
     if versions_mismatched({"codex": "1.0.1", "claude": "1.0.1", "marketplace": "1.0.1"}):
         failures.append("selftest FAILED: matching versions were reported as a mismatch")
