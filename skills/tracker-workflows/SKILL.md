@@ -118,7 +118,7 @@ When creating a ticket or materially refining one (a new ticket, or a change to 
 
 ## Handoff and triage tools
 
-- `file_handoff` / `decide_handoff` record and approve the did/changed/verified handoff trail. `verified` is the load-bearing field on `file_handoff` — say what you checked and what you didn't. `decide_handoff` always gets 403 over a token, same as `decide_approval`; the person decides on the ticket's handoff card.
+- `file_handoff` records the did/changed/verified handoff trail, and a person approves it; `decide_handoff` is the API for that decision, and over any token it gets 403. `verified` is the load-bearing field on `file_handoff` — say what you checked and what you didn't. `decide_handoff` always gets 403 over a token, same as `decide_approval`; the person decides on the ticket's handoff card.
 - `assign_agent`, `triage_ticket` (`run`/`suggestions`/`accept`/`dismiss`), `set_ticket_state` (close/reopen/done/not_done — kept separate from `update_ticket` since it fires notifications and sprint accounting), and `link_tickets` (relation, blocker, or scheduling dependency) round out ticket lifecycle management.
 
 ## Portable handoff

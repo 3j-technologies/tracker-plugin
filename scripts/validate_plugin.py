@@ -176,32 +176,23 @@ FORBIDDEN_SKILL_PHRASES = [
     "decide only on explicit human instruction",
 ]
 
-# The exact phrases above guard the old wording. This guards the old meaning: a
-# sentence that names a decide tool next to a "go ahead when asked" cue, with no
-# refusal in the same sentence, tells an agent it may decide on request.
-DECIDE_TOOLS_RE = re.compile(r"\bdecide_(?:approval|handoff)\b")
-PERMISSION_CUE_RE = re.compile(
-    r"\b(?:when (?:a |the )?(?:human|person|user)?\s*(?:asks?|asked|tells? you)|if (?:asked|the (?:human|person|user) asks?)"
-    r"|whenever|explicit(?:ly)?|on request|tells? you to|you (?:may|can) (?:call|use|decide|approve))\b",
-    re.IGNORECASE,
+# The exact phrases above guard the old wording. This guards the old meaning,
+# the strict way round: every sentence that names a decide tool must also state
+# the refusal (403 / refuses). A permission-cue denylist is easy to word past;
+# requiring the refusal in the same sentence is not.
+DECIDE_TOOLS_RE = re.compile(
+    r"\bdecide_(?:approval|handoff)\b|\bdecide tools?\b", re.IGNORECASE
 )
-REFUSAL_CUE_RE = re.compile(
-    r"\b(?:403|refuses?|refused|never|do not|don't|cannot|can't|not allowed)\b|always gets 403",
-    re.IGNORECASE,
-)
+REFUSAL_CUE_RE = re.compile(r"\b403\b|\brefuse[sd]?\b", re.IGNORECASE)
 
 
 def find_permissive_decide_sentences(text: str) -> list[str]:
-    """Sentences that name a decide tool as callable on request. Pure, for --selftest."""
-    found = []
-    for sentence in re.split(r"(?<=[.!?])\s+|\n+", text):
-        if (
-            DECIDE_TOOLS_RE.search(sentence)
-            and PERMISSION_CUE_RE.search(sentence)
-            and not REFUSAL_CUE_RE.search(sentence)
-        ):
-            found.append(sentence.strip())
-    return found
+    """Sentences that name a decide tool without stating the refusal. Pure, for --selftest."""
+    return [
+        sentence.strip()
+        for sentence in re.split(r"(?<=[.!?])\s+|\n+", text)
+        if DECIDE_TOOLS_RE.search(sentence) and not REFUSAL_CUE_RE.search(sentence)
+    ]
 
 
 errors: list[str] = []
@@ -537,9 +528,16 @@ def selftest() -> int:
     if find_permissive_decide_sentences(skill_text):
         failures.append("selftest FAILED: the shipped skill reads as permissive about deciding")
     for paraphrase in (
+        # The reviewer's paraphrases (tracker-plugin#5), all missed by a cue-word check.
         "Call `decide_approval` whenever a person tells you to approve something.",
-        "You may call `decide_handoff` when the human asks.",
-        "Use `decide_approval` only on explicit request.",
+        "decide_approval is fine to use once the human says go.",
+        "Go ahead and run decide_handoff if the user requests it.",
+        "The human can ask you to approve; then call decide_approval.",
+        "decide_approval is available on a person's instruction.",
+        "Agents may use decide_approval after the person confirms.",
+        "Never hesitate: call decide_approval whenever the person asks.",
+        "Call decide_handoff at the person's request.",
+        "Approve it yourself when asked, using the decide tool.",
     ):
         if not find_permissive_decide_sentences(skill_text + "\n- " + paraphrase + "\n"):
             failures.append(f"selftest FAILED: paraphrased stale guidance went undetected: {paraphrase!r}")
